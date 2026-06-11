@@ -5,6 +5,8 @@ import com.linecorp.bot.messaging.model.*;
 import com.linecorp.bot.webhook.model.CallbackRequest;
 import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.TextMessageContent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,10 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class AiController {
+
+    private static final Logger log = LoggerFactory.getLogger(AiController.class);
+    // 用於過濾重複的 Token，避免因 LINE 重試機制導致的 400 錯誤
+    private final Set<String> processedTokens = ConcurrentHashMap.newKeySet();
 
     private final ChatClient coffeeChatClient;
     private final ChatClient codeChatClient;
@@ -36,9 +44,16 @@ public class AiController {
         request.events().forEach(event -> {
             if (event instanceof MessageEvent messageEvent && messageEvent.message() instanceof TextMessageContent textMessage) {
                 String replyToken = messageEvent.replyToken();
+                
+                // 防重入機制：若 Token 已處理則直接跳過
+                if (!processedTokens.add(replyToken)) {
+                    log.warn("檢測到重複的 Token，忽略請求: {}", replyToken);
+                    return;
+                }
+
                 String text = textMessage.text().trim();
 
-                // 使用非同步處理，避免阻塞 LINE Webhook 連線
+                // 非同步執行，確保 Webhook 能立即回傳 200 OK 給 LINE
                 CompletableFuture.runAsync(() -> {
                     try {
                         if (text.contains("關於糯米橋")) {
@@ -51,7 +66,9 @@ public class AiController {
                             replyText(replyToken, response);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace(); // 確保錯誤有記錄
+                        log.error("處理 AI 回覆時發生錯誤", e);
+                    } finally {
+                        // 處理結束後，過一段時間可從 Set 移除，這裡簡單保留即可
                     }
                 });
             }
@@ -59,7 +76,6 @@ public class AiController {
     }
 
     private void sendImagemap(String replyToken) {
-        // 重要：在 Render 部署時，建議將此 URL 改為環境變數
         String baseUrl = System.getenv().getOrDefault("BASE_URL", "https://line-bot-to-render.onrender.com");
 
         ImagemapMessage imagemapMessage = new ImagemapMessage(
