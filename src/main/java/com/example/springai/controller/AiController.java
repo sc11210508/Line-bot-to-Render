@@ -78,7 +78,7 @@ public class AiController {
                         URI.create(baseUrl + "/videopr.mp4"),
                         URI.create(baseUrl + "/background.jpg"),
                         new ImagemapArea(0, 0, 1040, 520),
-                        new ImagemapExternalLink(URI.create("https://www.youtube.com/@yannilife8"), "點我看更多")
+                        new ImagemapExternalLink(URI.create("https://www.youtube.com/results?search_query=%E7%B3%AF%E7%B1%B3%E6%A9%8B"), "點我看更多")
                 )
         );
 
