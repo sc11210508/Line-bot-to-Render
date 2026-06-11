@@ -9,7 +9,7 @@
         <relativePath/>
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>spring-ai-intro</artifactId>
+    <artifactId>spring-ai-aintro</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
