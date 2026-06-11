@@ -2,6 +2,7 @@ package com.example.springai.controller;
 
 import com.linecorp.bot.messaging.client.MessagingApiClient;
 import com.linecorp.bot.messaging.model.*;
+import org.springframework.http.ResponseEntity;
 import com.linecorp.bot.webhook.model.CallbackRequest;
 import com.linecorp.bot.webhook.model.MessageEvent;
 import com.linecorp.bot.webhook.model.TextMessageContent;
@@ -40,22 +41,19 @@ public class AiController {
     }
 
     @PostMapping("/callback")
-    public void handleCallback(@RequestBody CallbackRequest request) {
-        request.events().forEach(event -> {
-            if (event instanceof MessageEvent messageEvent && messageEvent.message() instanceof TextMessageContent textMessage) {
-                String replyToken = messageEvent.replyToken();
-                
-                // 防重入機制：若 Token 已處理則直接跳過
-                if (!processedTokens.add(replyToken)) {
-                    log.warn("檢測到重複的 Token，忽略請求: {}", replyToken);
-                    return;
-                }
+    public ResponseEntity<String> handleCallback(@RequestBody CallbackRequest request) {
+        // 1. 立即返回 200 OK，這是最重要的！
+        // 這樣 LINE 就不會認為您的服務掛了，也不會觸發重試。
+        CompletableFuture.runAsync(() -> {
+            request.events().forEach(event -> {
+                if (event instanceof MessageEvent messageEvent && messageEvent.message() instanceof TextMessageContent textMessage) {
+                    String replyToken = messageEvent.replyToken();
+                    
+                    // 防重入
+                    if (!processedTokens.add(replyToken)) return;
 
-                String text = textMessage.text().trim();
-
-                // 非同步執行，確保 Webhook 能立即回傳 200 OK 給 LINE
-                CompletableFuture.runAsync(() -> {
                     try {
+                        String text = textMessage.text().trim();
                         if (text.contains("關於糯米橋")) {
                             sendImagemap(replyToken);
                         } else if (text.startsWith("開發:")) {
@@ -66,13 +64,13 @@ public class AiController {
                             replyText(replyToken, response);
                         }
                     } catch (Exception e) {
-                        log.error("處理 AI 回覆時發生錯誤", e);
-                    } finally {
-                        // 處理結束後，過一段時間可從 Set 移除，這裡簡單保留即可
+                        log.error("非同步任務執行失敗", e);
                     }
-                });
-            }
+                }
+            });
         });
+        
+        return ResponseEntity.ok("OK");
     }
 
     private void sendImagemap(String replyToken) {
