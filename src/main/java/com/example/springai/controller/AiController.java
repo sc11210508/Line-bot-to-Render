@@ -52,7 +52,7 @@ public class AiController {
     }
 
     private void sendImagemap(String replyToken) {
-        String baseUrl = "https://concludable-casen-unrepellent.ngrok-free.dev";
+        String baseUrl = "https://line-bot-to-render.onrender.com";
 
         ImagemapMessage imagemapMessage = new ImagemapMessage(
                 null,
