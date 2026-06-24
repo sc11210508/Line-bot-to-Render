@@ -1,6 +1,5 @@
 @echo off
 echo ========================================
-echo Spring AI Chapter 4 - Run Application
 echo ========================================
 echo.
 
