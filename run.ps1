@@ -1,7 +1,6 @@
 # Spring AI Chapter 4 - Run Application (PowerShell)
 
 Write-Host "========================================"  -ForegroundColor Cyan
-Write-Host "Spring AI Chapter 4 - Run Application" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
